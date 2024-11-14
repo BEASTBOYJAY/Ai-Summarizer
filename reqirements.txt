@@ -1,0 +1,6 @@
+accelerate
+huggingface-hub
+requests
+torch
+tqdm
+transformers
