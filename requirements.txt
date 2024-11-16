@@ -4,3 +4,4 @@ requests
 torch
 tqdm
 transformers
+huggingface_hub
