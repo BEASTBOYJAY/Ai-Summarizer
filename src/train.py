@@ -9,10 +9,28 @@ from datasets import load_dataset
 
 
 class TrainBERTSummarizer:
+    """
+    A class to train a BERT-based Encoder-Decoder model for text summarization.
+
+    Attributes:
+        tokenizer (BertTokenizer): Tokenizer for preprocessing text.
+        model (EncoderDecoderModel): Encoder-Decoder model for summarization.
+        dataset (Dataset): Loaded dataset for training.
+        tokenized_dataset (Dataset): Preprocessed dataset for training.
+        data_collator (DataCollatorForSeq2Seq): Data collator for padding and batching.
+        trainer (Trainer): Trainer for model training.
+    """
+
     def __init__(
         self, encoder_model="bert-base-uncased", decoder_model="bert-base-uncased"
     ):
-        # Initialize tokenizer and model
+        """
+        Initializes the TrainBERTSummarizer class with the specified encoder and decoder models.
+
+        Args:
+            encoder_model (str): Name or path of the pretrained encoder model. Defaults to 'bert-base-uncased'.
+            decoder_model (str): Name or path of the pretrained decoder model. Defaults to 'bert-base-uncased'.
+        """
         self.tokenizer = BertTokenizer.from_pretrained(encoder_model)
         self.model = EncoderDecoderModel.from_encoder_decoder_pretrained(
             encoder_model, decoder_model
@@ -20,7 +38,10 @@ class TrainBERTSummarizer:
         self._set_model_config()
 
     def _set_model_config(self):
-        # Configure the model for summarization
+        """
+        Configures model-specific settings for summarization tasks, such as token IDs, max length,
+        and beam search parameters.
+        """
         self.model.config.decoder_start_token_id = self.tokenizer.cls_token_id
         self.model.config.eos_token_id = self.tokenizer.sep_token_id
         self.model.config.pad_token_id = self.tokenizer.pad_token_id
@@ -32,13 +53,33 @@ class TrainBERTSummarizer:
     def load_data(
         self, dataset_name="cnn_dailymail", dataset_version="3.0.0", split="train[:1%]"
     ):
-        # Load the dataset
+        """
+        Loads a dataset for training.
+
+        Args:
+            dataset_name (str): Name of the dataset to load. Defaults to 'cnn_dailymail'.
+            dataset_version (str): Version of the dataset. Defaults to '3.0.0'.
+            split (str): Subset of the dataset to load (e.g., 'train[:1%]'). Defaults to 'train[:1%]'.
+        """
         self.dataset = load_dataset(dataset_name, dataset_version, split=split)
         print(f"Loaded {split} of {dataset_name} dataset.")
 
     def preprocess_data(self):
-        # Preprocess the dataset
+        """
+        Preprocesses the dataset by tokenizing the input and target texts and preparing them
+        for model training.
+        """
+
         def preprocess_function(examples):
+            """
+            Tokenizes input articles and summaries.
+
+            Args:
+                examples (dict): A batch of examples containing 'article' and 'highlights'.
+
+            Returns:
+                dict: Tokenized inputs with attention masks and labels.
+            """
             inputs = self.tokenizer(
                 examples["article"],
                 max_length=512,
@@ -67,7 +108,16 @@ class TrainBERTSummarizer:
         num_epochs=3,
         weight_decay=0.01,
     ):
-        # Set up training arguments and Trainer
+        """
+        Trains the model on the preprocessed dataset.
+
+        Args:
+            output_dir (str): Directory to save training outputs. Defaults to './results'.
+            learning_rate (float): Learning rate for the optimizer. Defaults to 2e-5.
+            batch_size (int): Batch size for training and evaluation. Defaults to 2.
+            num_epochs (int): Number of training epochs. Defaults to 3.
+            weight_decay (float): Weight decay for regularization. Defaults to 0.01.
+        """
         training_args = TrainingArguments(
             output_dir=output_dir,
             evaluation_strategy="epoch",
@@ -86,12 +136,10 @@ class TrainBERTSummarizer:
             data_collator=self.data_collator,
         )
 
-        # Start training
         self.trainer.train()
         print("Training completed.")
 
 
-# Example usage
 if __name__ == "__main__":
     summarizer = TrainBERTSummarizer()
     summarizer.load_data()
